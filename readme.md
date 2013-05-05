@@ -1,17 +1,12 @@
-#Source Maps 101
+##К статье  "Время подключать исходники. Введение в Source Maps"
 
-To play with the code, refer to the [original article in Nettuts](http://net.tutsplus.com/tutorials/tools-and-tips/source-maps-101/).
+Основано на статье [original article in Nettuts](http://net.tutsplus.com/tutorials/tools-and-tips/source-maps-101/) by Sayanee Basu от января 2013. В ней разбирается 6 практических примеров сборки проекта с разными компиляторами и минификаторами на nodeJS для Javascript. Часть примеров уже устарели в силу развития версий программ. 5 мая 2013 года все примеры выполнены заново, на ОС Windows, с последними версиями, что особенно актуально для Coffeescript 1.6.2 и Grunt 0.4. Оригинальная статья переведена и сильно дополнена современными инструкциями по всем примерам. Поэтому выполнять примеры из статьи рекомендуется с использованием этого архива исходных и конечных кодов. Адрес переведённой статьи: [Время подключать исходники. Введение в Source Maps (habr)](http://habrahabr.ru/post/178743/ ).
 
-There are 2 options to follow through the tutorial:
 
-1. **start folder**
-    - you will need to generate all the files required yourself with the help of the tutorial
-    - open the `index.html` in the browser
-    - open the developer console in the browser
-    - open command line in the folder `start` and follow the tutorial
-2. **complete folder**
-    - all generated files are given for you to play with
-    - open `index.html` in the browser
-    - open the developer console in the browser
-    - open the command line in the folder `finish`
-    - edit the comments inside `index.html` to comment and uncomment each option
+Есть как минимум 2 способа испорльзования этих кодов.
+
+1. Начать с каталога "start" и пройти часть примеров или всех их по инструкциям, руководствуясь статьёй.
+2. Посмотреть в каталог "complete-ru" и увидеть, что получается в рабочем каталоге в результате выполнения примеров. Можно посмотреть в браузере результаты без работы с nodeJS.
+
+
+
