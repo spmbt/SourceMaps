@@ -1,0 +1,33 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Colors - примеры для проверки технологий Source Maps</title>
+  <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+<div id="d1">Вариант запуска: <span id="s1"></span></div>
+
+<input type="text" id="color" placeholder="css color"/>
+
+<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<script>
+var lHash = location.hash.substr(1).split('=');
+if(lHash && lHash.length ==2 && lHash[0] =='option')
+	var optionName = lHash[1];
+if(optionName && !parseInt(optionName))
+	optionName = {'pure_JS':0,closure:1,jsmin:2,uglifyjs:3,coffeescript:4,typescript:5, coff:6}[optionName.toLowerCase()];
+console.log(optionName);
+optionName = optionName ||0;
+var loadScript;
+(loadScript = function(i){
+	var scr = document.createElement('SCRIPT');
+	scr.setAttribute('type', 'application/javascript');
+	scr.setAttribute('charset', 'utf-8');
+	scr.src ='scripts/script.'+ ('|closure|jsmin-grunt|uglify|coffee.min|typescript.min|c/script'.split('|')[i]) +(i?'.':'') +'js';
+	document.getElementsByTagName('head')[0].appendChild(scr);
+})(optionName);
+</script>
+
+</body>
+</html>

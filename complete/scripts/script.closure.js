@@ -1,0 +1,2 @@
+document.getElementById("color").focus();$(document).keydown(function(c){if(13==c.keyCode){c=$("#color").val().toUpperCase();var a=c.match(/./g),b;for(b in a)if("#"!=a[b]&&("0">a[b]||"9"<a[b]&&"A">a[b]||"F"<a[b]))break;document.body.style.backgroundColor=("#"==c.charAt(0)||b>=a.length?"":"#")+c}});
+//@ sourceMappingURL=script.closure.js.map

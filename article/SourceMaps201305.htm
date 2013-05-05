@@ -1,0 +1,530 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Время подключать исходники. Введение в Source Maps, Sayanee Basu (2013-01), translated and commented by spmbt (2013-05-05)</title>
+	<link rel="stylesheet" href="css.css">
+	<!--[if IE]><script src="jquery-1.9.1.js"></script><![endif]-->
+	<script src="convHabrAuth2htm.js"></script>
+</head>
+<body>
+<div class="article">
+
+<div class="content original">
+
+В современной разработке ваш код сильно отличается от кода на "боевом" сервере (production) после компиляции, минификации, объединения и разных оптимизаций. Тут-то и вступают в игру карты кода (source maps), показывая точное соответствие элементов готового рабочего кода проекта и вашего кода разработки. В этом вводном уроке мы возьмём простой проект и запустим его с помощью различных компиляторов JavaScript с целью посмотреть работу карт кода в браузере.
+<habracut/>
+<blockquote><i><font color=#009999>(от перев.)</font> <font color=#005555>О технологии работы с компилированным кодом в браузере (SourceMap) уже была подробная статья (<a href="http://habrahabr.ru/post/148098/">перевод</a>) примерно год назад. Сейчас эта технология настойчиво отвоёвывает своё место под солнцем. Например, тогда разговоры о маппинге компиляций только велись, а сейчас с версии 1.6.1 <a href="http://habrahabr.ru/post/171649/">поддержку создания map-файлов</a> получил компилятор Coffeescript . В Jetbrains Webstorm 6.0/Phpstorm (март 2013) появилась <a href="http://blog.jetbrains.com/webide/2013/03/webstorm-6-0-released-adds-typescript-debugging-with-source-maps-fresh-ui-and-much-more/">поддержка SourceMap для работы с кодом</a>. <a href="http://blogs.msdn.com/b/typescript/archive/2012/11/15/announcing-typescript-0-8-1.aspx">Typescript имеет поддержку</a> с версии 0.8.1 (ноябрь 2012). Все понимают что время ручной работы с "ассемблером" на фронтенде проходит, всем надо знать, откуда у кода ноги растут. Речь даже не идёт о начальном применении расшивки кодов минифицированных файлов - в UglifyJS, Closure Compiler и GWT (как минимум) они поддерживаются. Речь - именно о компиляторах кода JS и CSS.
+
+Вот и недавно (в январе 2013) появилась эта большая обучающая статья, поясняющая на примерах, как работает технология кодовых карт. Хотя первая статья тоже была подробной, но не помешает и вторую иметь в переводе, она описывает то же самое другими словами и иллюстрациями, и переходит к практике - к примерам.
+
+Перейти порог от обычного знания к опыту всегда составляет некоторый барьер. Используя учебные файлы, чтобы увидеть результаты создания файлов кодовых карт, мы между делом получим у себя на компьютере рабочую среду для сборки собственных проектов - все компиляторы и минификаторы, о которых знали, но боялись использовать, у нас будут в сборе, и останется только писать свой код на одном из экзотических до последнего времени сахарных языков фронтенда.
+
+Обратите внимание, что если будете использовать новую версию сборщика Grunt 0.4+, то для неё будут нужны несколько другие настройки, чем описаны в статье. Подробнее о переходе с 0.3.9 на 0.4х - в http://habrahabr.ru/post/170937/.
+
+Автор использовала скриншоты из Мас. Для Хрома они сильно отличаются в области настроек браузера от Windows-версии, поэтому в некоторых местах добавлены скриншоты из русской версии Хрома в Windows.
+
+Для кроссбраузерной разработки предпочтительно иметь возможность работы в любой из основных систем. Если с Linux и MacOS вопросов не возникает, то важно проверить, насколько успешно все примеры работают под Windows. В процессе перевода примеры проверялись и дорабатывались в среде Windows XP и на современных (на апрель 2013) версиях программ. В результате, в 2 из 5 примеров сделаны доработки, выложенные в статье-переводе как замечания и дополнения. (Автору статьи отправлено сообщение о доработках.) Они помогут приблизить примеры к реальности - как в плане поддержки новых версий (особенно Grunt 0.4 и Coffeescript 1.6.1), так и уверенности в работоспособности всех функций на Windows.
+
+Следующая особенность - архив на гитхабе автора. Из-за того, что в нём есть пути длиной больше 260 символов, он полностью не раскрывается в WinRar (но это не мешает использовать стартовые файлы для примеров, у которых короткие пути и выполнить с ними все примеры). Чтобы просмотреть и распаковать (из любопытства) весь архив, в котором лежат инсталлированные после выполнения всех примеров файлы, нужно использовать <b>7zip</b> или другой архиватор, отличный от WinRar.
+
+Комментариев, замечаний и переделок накопилось достаточно много (Здесь и далее они будут выделяться форматом "цитирования" для удобства различения.) Тем не менее, это не новая статья, а перевод, с замечаниями и учётом местных и кириллических особенностей. Потому что надо отдать дань хорошей и редкой организации большой работы по отношению к популяризации новой технологии.
+
+Но, так как обе статьи по этой теме - переведённая год назад и рассматриваемая - устарели (много не соответствующих нынешнему моменту утверждений), в этом, так сказать, переводе затронуты все вопросы, чтобы статья стала современным практическим руководством как по меппингу, как и по состоянию инструментов и браузеров на сегодня.</font></i></blockquote>
+
+<h3>Что такое карты кода (source maps)?</h3>
+Кодовые карты дают независимый от языка способ показа соответствия рабочего кода и исходных кодов (sources), написанных вами при разработке. Когда вы после сборки проекта посмотрите на весь подготовленный массив кодов, станет очень сложно найти соответствие участка конечного кода и его исходных строчек. Карта кода хранит эти соответствия, поэтому, когда мы запросим, например, место ошибки, то она покажет точное место её в исходном файле! Это даёт огромную пользу разработчикам, потому что код становится читаемым и даже отлаживаемым!
+
+В этом уроке будем компилировать очень простой кусочек кодов JS + SASS, а затем просмотрим исходные файлы в браузере с помощью кодовых карт. Скачиваем демо-файлы - и приступаем!
+
+<blockquote><i>Поскольку в примерах будет работать современная версия Grunt (0.4), рекомендуется скачивать не <a href="https://github.com/NETTUTS/Source-Maps-101">примеры автора</a>, а обновлённые примеры переводчика. В них лежат как стартовые файлы, так и результаты инсталляций и работы примеров, чтобы можно было проверить правильность и успешность своих действий --прим.перев. .</i></blockquote>
+
+<h3>Браузеры</h3>
+Обратите внимание, что к моменту написания статьи Chrome версии 23 поддерживает JS и SASS SourceMaps. Firefox тоже получит поддержку в ближайшем будущем, так как эта тема у него в активной стадии развития. С этими оговорками, давайте посмотрим, как пользоваться картами кодов в браузере.
+
+<blockquote><i>(прим. перев.:)</i> В этой статье в конце имеется пример поддержки SourceMap для SASS в Firefox+Firebug. Кроме того, новое о Firefox: <a href="http://paulrouget.com/e/devtoolsnext/">Future of Firefox DevTools</a> (17 Mar 2013) <a href="http://habrahabr.ru/post/173373/">или в переводе</a>:
+"Поддержка CoffeeScript. Для её реализации мы сделали поддержку SourceMap. Nick Fitzgerald продемонстрировал версию отладчика, поддерживающего SourceMap и CoffeeScript
+<a href=http://i.imgur.com/W6pPhKw.png><img src="http://i.imgur.com/W6pPhKw.png"/></a>
+Работа Ника помогает поддерживать в том числе минификацию файлов CSS и JS."
+
+<b>*)</b> https://wiki.mozilla.org/DevTools/Features/SourceMap</blockquote>
+
+<h3>Source Maps в Хроме</h3>
+Прежде всего, нам нужно включить поддержку меппинга в настройках:
+1) открыть окно Chrome Developer Tools: View -> Developer -> Developer Tools (F12);
+2) нажать "Settings" в правом нижнем углу;
+3) выбрать "General" и “Enable source maps”.
+<img src=http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-enable.png>
+<blockquote>
+<i>Для Windows <font color=#009999>(от перев.)</font>:</i>
+1) настройка и управление (в правом верхнем углу) (F12);
+2) в окне разработчика - "Settings" в правом нижнем углу;
+3) выбрать "General" и “Enable source maps” в блоке "Sources".
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src=http://img59.imageshack.us/img59/5624/sourcemaps01.png></blockquote>
+
+<h3>Установка</h3>
+<a href="https://github.com/NETTUTS/Source-Maps-101">Скачайте демо-архив</a> и откройте каталог "start". Файлы и структура каталога довольно просты - немного несложного JavaScript в scripts/script.js . После открывания  index.html скрипт меняет цвет фона страницы по вводу кода цвета пользователем.
+
+<img src=http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-demo.png>
+
+<source lang="bash">
+$ tree
++-- index.html
++-- scripts
+¦   +-- jquery.d.ts
+¦   +-- script.coffee.coffee
+¦   +-- script.js
+¦   L-- script.typescript.ts
+L-- styles
+    +-- style.css
+    L-- style.sass
+</source>
+Посмотрите на простые скрипты в файлах на JavaScript, TypeScript и CoffeeScript.
+Используя различные компиляторы, мы создадим сборку и сгенерируем соответствующие файлы кодовых карт.
+
+Мы будем использовать 5 различных способов генерации скомпилированного и минимизированного скрипта вместе с ассоциированной картой. Вы можете перебрать все варианты или использовать только знакомый вам компилятор.
+
+Варианты:
+<b>1.</b> <b>Closure Compiler</b>.
+<b>2.</b> <b>GruntJS с JSMin</b>.
+<b>3.</b> <b>Uglifyjs 2</b>.
+<b>4.</b> <b>CoffeeScript Redux</b>.
+<b>5.</b> <b>TypeScript</b>.
+
+<blockquote><i>После тестирования и доработки примеров до актуальных версий программ парк примеров пополнился двумя вариантами.</i>
+
+<b>2.а</b> <b>GruntJS (0.4.х) с JSMin</b>.
+<b>4.а</b> <b>CoffeeScript - не Redux, а оригинальный, версии 1.6.2</b>.
+
+<i>В первом - подробно описана установка новой версии, сильно отличающаяся от актуальной до февраля 2013 версии 0.3.х. Во втором - запуск и тестирования маппинга, появившегося с версии 1.6.1 в Coffeescript в феврале 2013. (с сентября 2012 эту роль исполнял клон - Coffeescript Redux.)</i></blockquote>
+
+<blockquote><i><font color=#555555>(от перев.)</font></i> Первое же знакомство с кодом и предлагаемым способом переключения вариантов вызывает смущение. Нет, автором проделана большая работа и приведены потрясающие технологии. Статья отлично оформлена. Но интерфейс пользования неожиданно хромает. Способ переключения вариантов через запись и стирание комментариев противоречит идеологии подхода автоматизированной сборки - всё должно быть максимально управляемым. Показ вариантов - тоже. Ничто не мешает переключать варианты через URL страницы. Напишем переключатель, который в зависимости от параметра option в якоре загрузит тот или иной скрипт во время загрузки страницы. Это не динамическая одностраничная загрузка, хотя недалеко до неё, но уже лучше, чем переключение в коде.
+
+<source lang="javascript">
+var lHash = location.hash.substr(1).split('=');
+if(lHash && lHash.length ==2 && lHash[0] =='option')
+	var optionName = lHash[1];
+if(optionName && !parseInt(optionName))
+	optionName = {closure:1,jsmin:2,uglifyjs:3,coffeescript:4,typescript:5}[optionName.toLowerCase()];
+console.log(optionName);
+optionName = optionName ||0;
+var loadScript;
+(loadScript = function(i){
+	var scr = document.createElement('SCRIPT');
+	scr.setAttribute('type', 'application/javascript');
+	scr.src ='scripts/script.'
+		+ ('|closure|jsmin-grunt|uglify|coffee.min|typescript.min'.split('|')[i])
+		+(i?'.':'') +'js';
+	document.getElementsByTagName('head')[0].appendChild(scr);
+})(optionName);
+</source>
+Теперь мы избавились от кучи комментариев в коде, необходимости следить за ними и переключать. Добавление якоря #option=&lt;число> или #option=&lt;имя_примера> или остутствие (или ошибка формата) якоря вызовут к исполнению нужный скрипт из вариантов, перечисленных в scr.src . В дальнейшем можно добавлять свои варианты под своими именами.
+
+И переключатель бекграунда какой-то недружественный - требует шарпа перед кодом. Понятно желание использовать цвета в словесной форме, но мало кто привык с ними работать. Подправим:
+<source lang="javascript">
+var colr = $("#color").val().toUpperCase()
+	, cL = colr.length;
+for(var i in cL)
+	if(cL[i] <'0'|| cL[i] >'9'&& cL[i] <'A'|| cL[i] >'F') //найден не hex-символ
+		break;
+document.body.style.backgroundColor = (colr.charAt[0] !='#' && i < cL ?'':'#') + colr;
+</source>
+Наверное, это выглядит с первого взгляда сложно, но уже не вызывает отторжения из-за примитивности. Иначе, получается, что мы применяем новейшие технологии сборки, а выразить в коде дружественный интерфейс не в состоянии. Уже потом мы сможем оформить свои пожелания в более совершенном коде, придумать для своих кодов не такой примитивный loadScript и читатель якорей, написать всё это в кофе-скрипте и хранить в своей библиотеке сборки. Ведь к сборкам проектов мы приходим от желания не соглашаться на компромиссы примитивности и просто отображать сложную логику абстракций.
+</blockquote>
+
+<h3>Вариант 1: Closure Compiler</h3>
+Гугловский <a href="https://developers.google.com/closure/compiler/">Closure Compiler</a> - это инструмент оптимизации JavaScript. Он анализирует код, удаляет ненужные кусочки, а оставшееся - минифицирует. Кроме того, может генерировать Source Map.
+
+Делаем следующие шаги для создания оптимизированной версии скрипта:
+<ul>
+<li>Скачиваем <a href="http://code.google.com/p/closure-compiler/downloads/detail?name=compiler-latest.zip">новейший Closure Compiler</a>;</li>
+<li>Кладём файл <code>compiler.jar</code> в каталог со скриптами;</li>
+<li>В командной строке переходим в каталог "<code>scripts/</code>" и выполняем команду, чтобы создать оптимизированный и готовый к выполнению в production файл <code>script.closure.js</code></li></ul><source lang="dos">
+java -jar compiler.jar --js script.js --js_output_file script.closure.js
+</source><ul>
+<li>Убеждаемся, что <code>index.html</code> связан с созданным файлом, раскомментировав "Option A".</li>
+</ul>
+<img src="http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-closure.png"/>
+Когда мы открываем <code>index.html</code> в браузере и смотрим панель Source в инструментах разработчика, имеется ссылка только на оптимизированную версию скрипта <code>script.closure.js</code>; у нас нет способа связи с оригинальным файлом кодов с нужными отступами. Теперь создадим файл карты кодов выполнением следующей команды в каталоге скриптов:
+
+<source lang="dos">
+java -jar compiler.jar --js script.js --create_source_map script.closure.js.map --source_map_format=V3 --js_output_file script.closure.js
+</source>
+
+Обратите внимание, что Closure Compiler использует 2 варианта - <code>--create_source_map</code> and <code>--source_map_format</code>, чтобы создать файл карты <code>script.closure.js.map</code> с Source Map версии 3. Но и это не всё. Чтобы увидеть эффект, добавьте URL исходников к концу скомпилированного файла <code>script.closure.js</code>, чтобы он содержал данные о расположении их.
+<source lang="javascript">
+//@ sourceMappingURL=script.closure.js.map
+</source>
+Теперь просмотр скриптов в браузере через панель разработчика покажет оба файла - оригинал и оптимизированный <code>script.closure.js</code>. Хотя браузер использует оптимизированный файл, Source Map позволяет связать его с исходным кодом.
+
+Попробуйте отладку с точками останова. Наблюдаемые выражения и переменные пока недоступны при просмотре исходников. Будем надеяться, что в будущем они появятся!
+<img src="http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-closure-map.png"/>
+<blockquote>Кириллические пользователи имеют счатье заметить и другой косяк, даже два: один в браузере, другой - в компиляторе. Браузер не отображает символы UTF-8 в файле, подгруженном по маппингу:
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="http://img577.imageshack.us/img577/3687/sourcemaps04.png"/>
+
+Компилятор - и того хуже: кириллические символы считает ошибкой, поэтому их надо удалить перед компиляцией (если это возможно).</blockquote>
+
+
+<h3>Вариант 2: Задача GruntJS для JSMin</h3>
+Если вы уже используете <a href="http://gruntjs.com/">Grunt.js</a> для сборки проектов, то он сейчас пригодится для кодовых карт из программы JSMin. Код будет не только минифицирован, но также будет создана карта кодов. <i>(Надо вспомнить, что работа <code>Grunt</code> версии 0.4 отличается от описываемой в статье версии 0.3. --прим.перев.)</i>
+
+Шаги показывают, как создать оптимизированную версию с плагином <code>JSMin</code> с помощью <code>Grunt</code>.
+
+<b>1.</b> Установите <code>Grunt</code> и запустите (<a href="http://habrahabr.ru/post/177395/">альтернативное свежее описание</a>) в nodeJS <code>gruntfile</code> под названием <code>grunt.js</code>, размещённый в корне каталога "<code>start/</code>".
+
+<source lang="bash">
+$ npm install -g grunt
+$ npm view grunt version
+npm http GET https://registry.npmjs.org/grunt
+npm http 200 https://registry.npmjs.org/grunt
+0.3.17
+$ grunt init:gruntfile
+</source>
+
+<blockquote><h3>Как работать с Grunt 0.4.x</h3>
+<i>Если у вас установлена старая версия, но вы хотите обновить её до 0.4.x, то процесс установки будет другим.</i> Прежде всего, удалите старую версию Grunt 0.3.x (если была установлена как глобальная).
+<source lang="bash">
+npm uninstall -g grunt
+</source>
+Ознакомимся подробнее с установкой задач в Grunt 0.4, так как это надолго будет одним из основных инструментов сборки.
+
+Теперь модуль Grunt в новой версии разделён на несколько модулей - ядро и плагины, чтобы вынести все коды приложений из ядра. В установке участвуют несколько модулей.
+
+Установим интерфейс командной строки как глобальный модуль grunt-cli.
+<source lang="bash">
+npm install -g grunt-cli
+</source>
+<img src="http://img705.imageshack.us/img705/437/sourcemaps05grunt.png"/>
+Для запуска задач в проектах этого недостаточно - в каждом проекте нужно описать задачи в файле Gruntfile. Если раньше он назывался grunt.js, то в новой версии - Gruntfile.js или Gruntfile.coffee. Второй необходимый файл в корне проекта - это package.json со списком зависимостей, использующийся в npm (Node.js package manager).
+
+В каждой задаче в папке проекта инсталлируется локальный модуль grunt.
+<source lang="bash">
+npm install grunt
+</source>Поэтому зайдём в командной строке в папку "start/" и выполним там указанную команду. Как и в 0.3.x-версии, появится папка node_modules и в ней - папка модуля grunt.
+
+Разбрасывание основного кода по проектам сделано с целью возможности запуска разных версий сбрщика на одном компьютере. grunt-cli - всего лишь оболочка, запускающая команду в нужной папке проекта. ( http://gruntjs.com/getting-started )
+
+Далее, в корне проекта ("start/") готовим <code>Gruntfile.js</code> и <code>package.json</code>. <code>package.json</code> будет связан с вашим проектом и в нём описываются зависимости - потребности в плагинах сборщика. Для нашего проекта напишем:
+<source lang="javascript">
+{
+  "name": "colors",
+  "version": "0.1.0",
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-jsmin-sourcemap": "~1.5.6"
+  }
+}
+</source>
+Вместо последующего пункта 2 для версии 0.3.х понадобится выполнить 
+<source lang="bash">
+npm install grunt --save-dev
+</source>, чтобы подтянуть все зависимости из <code>package.json</code>.
+</blockquote>
+
+<b>2.</b> <i>(Для версии 0.3.х).</i> Установите плагин <a href="https://github.com/twolfson/grunt-jsmin-sourcemap">grunt-jsmin-sourcemap</a>. При этом будет создан каталог <code>node_modules/grunt-jsmin-sourcemap</code>.
+<source lang="bash">
+$ npm install grunt-jsmin-sourcemap
+</source>
+
+<b>3.</b> Отредактируйте созданный <code>grunt.js</code> <i>(для версии 0.4 - создайте <code>Gruntfile.js</code> в "start/")</i> так, чтобы он содержал только задачу  <code>jsmin-sourcemap</code> - будем поступать максимально просто:
+
+<source lang="javascript">
+module.exports = function(grunt) {
+  grunt.loadNpmTasks('grunt-jsmin-sourcemap');
+  grunt.initConfig({
+    'jsmin-sourcemap': {
+      all: {
+        src: ['scripts/script.js'],
+        dest: 'scripts/script.jsmin-grunt.js',
+        destMap: 'scripts/script.jsmin-grunt.js.map'
+      }
+    }
+  });
+  grunt.registerTask('default', 'jsmin-sourcemap');
+};
+</source>
+
+<b>4.</b> Вернитесь к командной строке и запустите grunt:
+<source lang="bash">
+E:\Projects\nodeJS\SourceMaps101\start> grunt
+</source>
+Это выполнит задачу jsmin-sourcemap как задачу по умолчанию, сформулированную в файле <code>grunt.js</code> <i>(или <code>Gruntfile.js</code>)</i>. В случае успешного результата:
+<source lang="bash">
+Running "jsmin-sourcemap:all" (jsmin-sourcemap) task
+ 
+Done, without errors.
+</source>
+<blockquote><i>Далее, будем складывать результаты выполнения в каталог complete-ru, чтобы отличать результаты автора от своих, которые будут различны в основном из-за новой версии Grunt. Это поможет сверить ваши результаты с теми проверенными, что получены на Windows при запуске примеров. --прим.перев.</i></blockquote>
+
+<b>5.</b> Убедитесь, что в созданном файле Source Map <i>script.jsmin-grunt.js.map</i> прописан файл исходников: <code>"sources":["script.js"]</code>.
+<i>(На самом деле там прописался <code>"sources":["scripts/script.js"]</code>, поэтому следует руками подправить. - прим.перев.)</i>
+
+<b>6.</b> Раскомментируйте <code>Option B</code>, чтобы подключить созданный файл <i>script.grunt-jsmin.js</i> к <i>index.html</i>, и откройте его в браузере. 
+
+<blockquote><i>(Модифицированный файл index-ru.html достаточно вызвать с якорем: http://localhost/index-ru.html#option=jsmin . - прим.перев.)
+
+<font color=#555555>В этом примере у нас тоже получился маппинг исходного файла - не зря мы продирались сквозь инсталляцию сборщика. Дальше будет легче, основной инструмент - у нас в кармане.
+
+Как видно и здесь мы наблюдаем косячки сборки, которые затем, если использовать - придётся тексты подправлять серверными скриптами и версию за версией следить за исправлениями. Такая она - разработка с инструментами на ранних стадиях готовности, при этом, очень востребованная рынком.</font></i></blockquote>
+
+С <code>Grunt</code> и плагином <code>jsmin-sourcemap</code> процесс сборки создаёт 2 файла: оптимизированный скрипт со ссылкой на маппинг-файл в конце и сам файл карты кодов. Аналогично прежнему варианту, для просмотра исходников понадобятся оба файла.
+<img src="http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-gruntjsmin.png"/>
+
+
+<h3>Вариант 3: UglifyJS</h3>
+<a href="https://github.com/mishoo/UglifyJS2">UglifyJS2</a> - другой оптимизатор-компрессор JS. Как и в 2 прежних случаях, создаются оптимизированный файл скрипта, добавляется URL кодовой карты и сам файл карты, содержащий соответствия между сжатыми и исходными операторами JavaScript.  Для использования выполните в каталоге "<code>start</code>":
+<b>1.</b> Инсталлируйте модуль <i>uglify-js</i> (создасстся каталог <code>nocde_module/uglify-js</code> ):
+<source lang="bash">
+$ npm install uglify-js -g
+$ npm view uglify-js version
+2.2.3
+$ cd scripts/
+</source>
+<img src="http://imageshack.us/a/img199/6513/sourcemaps06.png"/>
+
+<b>2.</b> В каталоге “<code>scripts</code>” выполним команду создания оптимизированной версии и карты:
+<source lang="bash">
+uglifyjs --source-map script.uglify.js.map --output script.uglify.js script.js
+</source>
+<blockquote><i>(На этот раз - никакого шаманства руками, всё работает.)</i></blockquote>
+
+3. В <code>index.html</code> раскомментируйте вариант "Option C".
+<img src="http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-uglify.png"/>
+
+
+<h3>Вариант 4: CoffeeScript Redux</h3>
+<blockquote><i>Так как к моменту написания статьи оригинальная сборка Coffescript от Джереми Ашкенаса не поддерживала меппинг, был использован клон, работающий с меппингом. В версии Coffescript 1.6.1+ можно использовать оригинальный язык (что, впрочем, не уменьшает других достоинств клона).
+
+Клон этот, кстати, успешно собрал заявленные как цель <a href="http://www.kickstarter.com/projects/michaelficarra/make-a-better-coffeescript-compiler">12 тыс $ на Кикстартере</a> на дальнейшее развитие.</i> </blockquote>
+
+В первых 3 вариантах требовался только 1 шаг оптимизации. Для языков типа CoffeeScript нужно 2 шага: из CoffeeScript в JavaScript, а затем - в оптимизированный JS. Рассмотрим, как создать многоуровневую кодовую карту - из CoffeeScript и из компилятора CoffeeScript Redux <i>(потому что исходный Coffeescript не поддерживал карт до версии 1.6.1 - прим. перев.)</i>.
+
+<h4>Шаг 1: из CoffeeScript в простой JavaScript</h4>
+Перейдите в каталог "<code>start</code>" в командной строке. В следующих шагах будем создавать файл соответствий между оптимизированным и файлом исходных кодов.
+<b>1.</b> Установим CoffeeScript с опцией -g возможности глобального вызова.
+<b>2.</b> Компилируем <code>script.coffee.coffee</code> в простой JS:
+<source lang="bash">
+$ coffee -c scripts/script.coffee.coffee
+</source>
+<b>3.</b> Установим <a href="https://github.com/michaelficarra/CoffeeScriptRedux">CoffeeScript Redux</a>:
+<source lang="bash">
+$ git clone https://github.com/michaelficarra/CoffeeScriptRedux.git coffee-redux
+$ cd coffee-redux
+$ npm install
+$ make -j test
+$ cd ..
+</source>
+<b>4.</b> Создадим файл маппинга <code>script.coffee.js.map</code>, описывающего соответствия между простым JS и исходным CoffeeScript.
+<source lang="bash">
+$ coffee-redux/bin/coffee --source-map -i scripts/script.coffee.coffee > scripts/script.coffee.js.map
+</source>
+<b>5.</b> Убедитесь, что в самом конце файла <code>script.coffee.js</code> есть URL-адрес карты кодов:
+<source lang="javascript">
+//@ sourceMappingURL=script.coffee.js.map
+</source>
+<b>6.</b> Убедитесь, что файл <code>script.coffee.js.map</code> имеет правильную ссылку на файл:
+<source lang="javascript">
+"file":"script.coffee.coffee", and source file as "sources":["script.coffee.coffee"]
+</source>
+
+<blockquote><h3>Работа с Coffeescript</h3>
+<i>Сделаем вместо работы с клоном кофе-скрипта пример с оригинальным компилятором.</i>
+Пункты 1 и 2 - остаются без изменений.
+Пункт 3 - пропускаем.
+<b>4.</b> 
+<source lang="bash">
+coffee -o script.c -cm script.coffee.coffee
+</source>
+("-cm" - это сокращённые параметры "--compile" и "--map".)
+<b>5.</b> Косяки.
+C созданием выходного файла - сразу пара багов. 1) файл script.coffee.js не создаётся - вместо него - script.js, затирая вариант из первых примеров. Поэтому создаём файл в отдельном каталоге (способа создать файл с другим именем в рамках одной команды не существует, если не рассматривать потоки в ОС); 2) если каталога нет, создаётся "левый" пустой каталог "/-p/" наряду с требуемым.
+
+Для проверки путей стоит запустить этот промежуточный результат, который будет выглядеть как 6-й пример - несжатый coffeescript, и проверит правильность путей в нём.
+
+Если создаём карту кодов одной командой (а не двумя раздельными), то в конце компилированного файла имеется комментарий вида
+<source lang="javascript">
+/*
+//@ sourceMappingURL=script.map
+*/
+</source>Оказалось, что в Хроме читается комментарий и такого вида.
+И "file": "script.js" и прочие пути в карте кодов тоже менять не понадобилось. Там находится:
+<source lang="javascript">
+  "file": "script.js",
+  "sourceRoot": "..",
+  "sources": [
+    "script.coffee.coffee"
+  ],
+</source>
+
+Для запуска заранее выбрали такое странное имя каталога, script.c, чтобы он хорошо лёг в ранее построенный скрипт.
+<source lang="javascript">
+var lHash = location.hash.substr(1).split('=');
+if(lHash && lHash.length ==2 && lHash[0] =='option')
+	var optionName = lHash[1];
+if(optionName && !parseInt(optionName))
+	optionName = {closure:1,jsmin:2,uglifyjs:3,coffeescript:4,typescript:5,'coff':6}[optionName.toLowerCase()];
+console.log(optionName);
+optionName = optionName ||0;
+var loadScript;
+(loadScript = function(i){
+	var scr = document.createElement('SCRIPT');
+	scr.setAttribute('type', 'application/javascript');
+	scr.src ='scripts/script.'+ ('|closure|jsmin-grunt|uglify|coffee.min|typescript.min|c/script'.split('|')[i]) +(i?'.':'') +'js';
+	document.getElementsByTagName('head')[0].appendChild(scr);
+})(optionName);
+</source>
+При параметре 6 или <code>coff</code> будет читаться скрипт из пути <code>scripts/script.c/script.js</code>. Видим, что всё работает без заплаток, несмотря на создание промежуточного файла в каталоге. Хорошая работа автора компилятора!
+
+Так выглядит кофескрипт в отладке Хрома.
+<img src="http://img441.imageshack.us/img441/8117/soorcemaps07.png"/>
+Видно, что Хром всё так же совершенно не понимает utf-8. Установка <code>scr.setAttribute('charset', 'utf-8');</code> тоже не помогает.
+</blockquote>
+
+
+<h4>Шаг 2: из простого JavaScript в минифицированный JS</h4>
+<b>1.</b> Наконец, используем UglifyJS, чтобы сжать JS и создать кодовую карту. На этот раз сборщик примет кодовую карту от CoffeeScript, чтобы мы могли добраться до исходных кодов. Выполните команду в "<code>scripts</code>":
+<source lang="bash">
+$ cd scripts/
+$ uglifyjs script.coffee.js -o script.coffee.min.js --source-map script.coffee.min.js.map --in-source-map script.coffee.js.map
+</source>
+<blockquote><i>Для нашей ветки примеров вид команды - </i>
+<source lang="bash">
+uglifyjs script.c/script.js -o script.coffee.min.js --source-map script.coffee.min.js.map --in-source-map script.c/script.map
+</source></blockquote>
+
+<b>2.</b> Убедитесь, что файл карты кодов имеет правильную ссылку вида 
+<source lang="bash">
+"file":"script.coffee.min.js"
+</source>
+...и правильные ссылки на исходные коды вида
+<source lang="bash">
+"sources":["script.coffee.coffee"]
+</source>
+<img src="http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-coffee.png"/>
+<blockquote>Пишем в адресной строке
+<source lang="dos">
+http://localhost/#option=coffeescript
+</source>
+...И видим, что с путём в файле творится неладное. <code>"sources":["script.coffee.coffee"]</code> должен работать, но не заработал. Но удалось увидеть исходный файл, написав (понадобилось переоткрыть браузер)
+<source lang="javascript">
+"sources":["/scripts/script.coffee.coffee"]
+</source>
+Всё же, сказались усложнённые пути с каталогом <code>script.c</code>, и минификатор в связке заработал не так, править пришлось, и эта правка больше похожа на хак сырого продукта.</blockquote>
+
+
+
+<h3>Вариант 5: TypeScript</h3>
+TypeScript, как и CoffeeScript, тоже требует 2 этапа: TypeScript -> простой JavaScript -> минифицированный JavaScript. Поскольку скрипт использует плагин jQuery, нужно будет 2 файла TypeScript с именами <code>script.typescript.ts</code> и <code>jquery.d.ts</code> .
+
+<blockquote>Установка Typescript:
+<source lang="bash">
+npm install -g typescript
+</source></blockquote>
+<h4>Шаг 1: из TypeScript в простой JavaScript</h4>
+Перейдите в каталог "scripts" в режиме командной строки и выполните:
+<source lang="bash">
+$ tsc script.typescript.ts -sourcemap
+</source>
+Команда создаст файл <code>script.typescript.js</code> со ссылкой в конце:
+<source lang="javascript">
+//@ sourceMappingURL=script.typescript.js.map
+</source>И в той же команде создаётся файл карты <code>script.typescript.js.map</code>.
+
+<blockquote>Crhbgn пожаловался на несоответствие некоторых параметров для jQuery и для одного - в нашем коде:
+<blockquote>/script.typescript.ts(7,8): The property 'keyCode' does not exist on value of type 'JQueryEventObject'</blockquote>
+Но работу принял; файл, который фактически Javascript, обработал.
+
+Чтобы видеть изменения исходных кодов, требуется очистка кеша браузера.
+</blockquote>
+
+<h4>Шаг 2: из простого JavaScript в минифицированный JS</h4>
+Как и для CoffeweScript, следующий шаг использует UglifyJS:
+<source lang="bash">
+$ uglifyjs script.typescript.js -o script.typescript.min.js --source-map script.typescript.min.js.map --in-source-map script.typescript.js.map
+</source>
+Убедитесь, что ссылки в <code> index.html</code> указывают на правильный файл скрипта: <code>scripts/script.typescript.min.js</code> и откройте его в браузере.
+<img src="http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-typescript.png"/>
+<blockquote><i>Ошибок, связанных с компилятором и минификатором, на этом простом коде замечено не было. Исходные коды и меппинг работают без ручных правок служебных файлов.</i></blockquote>
+
+<h3>Карты кодов для SASS</h3>
+Кроме JavaScript, Chrome в настоящее время поддерживает SASS и SCSS для карт кодов. Для меппинга SASS давайте изменим некоторые настройки в Хроме и затем скомпилируем SASS в CSS с отладочными параметрами.
+
+<b>1.</b> Перед изменением каких-либо настроек обратите внимание, что при наблюдении элемента из окна инструментов разработчика будем видеть только ссылку на CSS. Это не то, что нужно.
+<img src="http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-onlycss.png"/>
+<b>2.</b> Заходим в chrome://flags/.
+<b>3.</b> Устанавливаем "Enable <b>Developer Tools experiments</b>" (в русской версии Хрома - "Включить экспериментальные инструменты разработчика").
+<img src="http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-devtoolsexp.png"/>
+В Windows:
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="http://img11.imageshack.us/img11/4923/sourcemaps02.png"/>
+
+<b>4.</b> Открываем <code>Dev Tools -> Setting -> Experiments -> Check “Support for SASS”</code>.
+<img src="http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-sass.png"/>
+В Windows:
+Настройки (&#9776;) -> Инструменты -> Инструменты разработчика -> Settings (&#9187; в правом нижнем углу) -> Experiments -> <b>Support for Sass</b>.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="http://img832.imageshack.us/img832/9397/sourcemaps03.png"/>
+
+<b>5.</b> Компилируем SASS с такими параметрами отладки в каталоге "<code>styles</code>" в командной строке. Этим будет предваряться каждый набор правил с <code>@media -sass-debug-info</code>
+<source lang="bash">
+$ cd styles/
+$ sass --debug-info --watch style.sass:style.css
+</source>
+<b>6.</b> Убедитесь, что окно Developer Tools переоткрыто и страница перезагружена.
+<b>7.</b> Теперь, когда проверяем элемент в Dev.Tools, будем видеть доступ к SASS-файлу.
+<img src="http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-onlysass.png"/>
+Кроме простого просмотра SASS, если запущен LiveReload в фоне, то при изменении SASS-файла страница тоже будет изменяться.
+
+Теперь - откроем проект в <b>Firefox</b> и посмотрим через Firebug. В нём тоже будет доступен просмотр SASS-файла. 
+<img src="http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-sass-firefox.png"/>
+
+<h3>Информация о кодовых картах</h3>
+Если мы посмотрим любой <code>*.map</code> файл, он будет содержать сопоставление информации между исходным файлом и результирующим. Структура, как правило, содержится в формате JSON по спецификации карт версии 3. Обычно, имеется 5 свойств:
+<b>1.</b> <b>version</b>: версия карты (обычно 3).
+<b>2.</b> <b>file</b>: имя выходного файла.
+<b>3.</b> <b>sources</b>: имя исходного файла.
+<b>4.</b> <b>names</b>: символы, используемые для соответствий.
+<b>5.</b> <b>mappings</b>: данные соответствий.
+<img src="http://cdn.tutsplus.com/net.tutsplus.com/authors/sayanee-basu/source-maps-file.png"/>
+
+<h3>Дополнительные ссылки</h3>
+Карты кодов всё ещё находятся в стадии активной разработки, но уже есть некоторые заметные ресурсы в Сети. Обязательно посмотрите такие ссылки, чтобы узнать больше.
+<ul>
+<li>   <a href="http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/">Введение в  JavaScript Source Maps</a> by Ryan Seddon, HTML5 Rocks, 21 марта 2012; <a href="http://habrahabr.ru/post/148098/">Перевод</a>.</li>
+<li>    <a href="http://addyosmani.com/blog/the-breakpoint-episode-3-source-maps-shortcut-secrets-and-jsrun/">The Breakpoint Episode 3: JavaScript Source Maps</a> by the Google Developer Team</li>
+<li>    <a href="http://addyosmani.com/blog/the-breakpoint-episode-2-sass-source-maps-feature-inspection-and-more/">The Breakpoint Episode 2: SASS Source Maps</a> by the Google Developer Team</li>
+<li>    <a href="https://github.com/ryanseddon/source-map/wiki/Source-maps%3A-languages%2C-tools-and-other-info">Source Maps wiki</a> on languages, tools, articles on Source Maps</li>
+<li>    <a href="http://www.thecssninja.com/JavaScript/multi-level-sourcemaps">Multi Level Source Maps</a> with CoffeeScript and TypeScript by Ryan Seddon</ol>
+<li>    <a href="https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit?hl=en_US&pli=1&pli=1">Source Maps Version 3 proposal</a></li>
+</ul>
+<h3>Заключение</h3> <img src="http://st.habrate.ru/pixel.gif"/>
+Надеюсь, что практика использования нескольких компиляторов показала потенциал карт кодов. Хотя функциональность сейчас ограничена, в будущем есть основания ожидать возможности полноценной отладки, в том числе, в виде доступа к переменным и выражениям.
+
+<blockquote><img src="http://m3.licdn.com/mpr/pub/image-F1XtkI4Zld6aTDY77Lo-VD_oDPPNmHEYYMyzeVBkD4bcdV8wF1Xzo5AZD_XdmAH71Q8Z/sayanee-basu.jpg" align="left"/>&nbsp;
+&nbsp;
+<i>Автор</i>: Sayanee Basu, независимый разработчик из Сингапура. В <a href="http://sg.linkedin.com/in/sayanee">её профиле</a> описано знание технологий Ruby и связанных с ним сахарных метаязыков. Отсюда - интерес к сырцовым картам.
+&nbsp;
+&nbsp;
+<font color=#555555><i>Можно согласиться с автором, что "функциональность ограничена" и сказать больше - почти в каждом примере присутствовали баги с путями к файлам. Имеем состояние сырой технологии; отдалённая аналогия - примерно так было с nodeJS порядка года назад. Но объём доработок не такой большой, вопрос не года, а месяцев, и что вселяет надежду - часть багов лежит в подконтрольных кодах, написанных на nodeJS. При большом желании там можно разобраться. Но уровень гиковости для работы с этой технологией должен быть таким же, как у тех, кто ставит альфа-версии браузеров, не для развлечения, а для дела.
+
+(Следующие вести с полей будут видимо, через пару месяцев про Firefox с его умением работать со всем этим устаканивающимся хозяйством.)
+
+Нужно ли с этим работать сейчас? Если есть большое желание перейти на Coffeescript, то время для него уже настало. Уже сейчас можно получать неоценимый опыт отладки проектов, когда раньше приходилось работать фактически с 2 языками, помня, что отлаживать придётся JS.
+
+Если уже используется Grunt, то для того, чтобы перейти на Кофе и SASS - сейчас дистанция вхождения стала ещё короче. Но, судя даже по примерам, надо быть готовым с головой окунуться во весь стек технологий, ища решение при выявлении багов сборки.  Хорошо видно, что баги будут активно исправляться - через поддержку надстроечных языков проходит вектор интересов нескольких крупных игроков рынка, которые просто так недоработки не оставят, потому что чувствуется дыхание догоняющих, а финиш близок.
+
+Если вы пройдёте примеры вместе с автором, или ещё лучше, затем устанОвите коды из своих проектов, проинсталлируете необходимые модули nodeJS, это будет хорошим шагом по освоению технологий фронтенд-сборки и отладки приложений.</i></font>
+
+<b>1)</b> <a href="http://www.aaron-powell.com/web/typescript-source-maps">Using Source Maps with TypeScript</a>, Aaron Powell, Oct 3 2012;
+<b>2)</b> https://github.com/mozilla/source-map - This is a library to generate and consume <a href=https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit>the source map format</a>.
+<b>3)</b> <a href="http://globaldev.co.uk/2013/01/happy-debugging-with-javascript-source-maps/">Happy debugging with JavaScript source maps</a> by James Allardice, 25 January 2013. 
+<b>4)</b> http://bower.io/ - альтернативный сборщик от Twitter.
+<b>5)</b> http://kevinpelgrims.com/blog/2011/12/28/building-coffeescript-with-sublime-on-windows
+<b>6)</b> <a href="http://jashkenas.github.io/coffee-script/documentation/docs/sourcemap.html">sourcemap.litcoffee</a>.
+<b>7)</b> https://github.com/evanw/node-source-map-support
+</blockquote>
+
+</div>
+</div>
+</body></html>
